@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Kestrel Lab @ Plaksha</title>
+<title>Projects – Kestrel Lab @ Plaksha</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -89,11 +89,11 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./projects.html"> 
+    <a class="nav-link active" href="./projects.html" aria-current="page"> 
 <span class="menu-text">Projects</span></a>
   </li>  
   <li class="nav-item">
@@ -116,8 +116,7 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
-  <li><a href="#news" id="toc-news" class="nav-link" data-scroll-target="#news">News:</a></li>
+  <li><a href="#projects" id="toc-projects" class="nav-link active" data-scroll-target="#projects">Projects</a></li>
   </ul>
 </nav>
     </div>
@@ -126,7 +125,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Kestrel Lab @ Plaksha</h1>
+<h1 class="title">Projects</h1>
 </div>
 
 
@@ -143,19 +142,20 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="overview" class="level3">
-<h3 class="anchored" data-anchor-id="overview">Overview</h3>
-<p>The Kestrel Lab at Plaksha University conducts research on machine learning systems and LLM reasoning. We are interested in methods for speeding up inference of AI models so that they are able to make good utilization of expensive hardware resources. We also focus on developing benchmarks to measure and characterize ability of AI models on tasks that go beyond math and programming and are more representative of the scenarios in which we want to use these models in the real-world.</p>
+<section id="projects" class="level3">
+<h3 class="anchored" data-anchor-id="projects">Projects</h3>
+<section id="visual-estimation-in-vlms" class="level4">
+<h4 class="anchored" data-anchor-id="visual-estimation-in-vlms">Visual Estimation in VLMs</h4>
+<p>We implicitly make many rapid estimations of properties like weights and volumes of objects as we navigate the world. Deploying vision-language models (VLMs) in robotics applications requires them to have some of these same abilities. VLMs trained on text-image pairs may fall short on such important tasks because they lack the grounding that comes from real interaction via embodied systems. We create a dataset of precise, hand-measured ground truth values to benchmark a wide variety of models (including robotics foundation models). Our emphasis is to move beyond well-studied spatial estimation abilities. We are also studying the interventions we can do, via tool augmentation or fine-tuning, to improve the current models on these tasks.</p>
+<p><mark>Paper and dataset coming soon</mark></p>
 </section>
-<section id="news" class="level3">
-<h3 class="anchored" data-anchor-id="news">News:</h3>
-<p><strong>April, 2026</strong></p>
-<p>Kestrel Lab is looking for a research fellow interested in ML Systems or LLM reasoning. The candidate should ideally have good software engineering skills - proficiency in Python and C as well as familiarity with tools such as version control, dependency management, and containerization. Prior exposure to CUDA/Triton programming is a strong plus. The RF will contribute to one of the lab’s active projects and will be expected to produce publishable research. This is a good opportunity to get research mentorship. Travel support for attending a conference will be provided.</p>
-<p>This is a 1-year appointment, similar to pre-doc positions at research labs. Remuneration is Rs 60k-80k per month (based on experience) plus conference travel support. To apply, please email with CV to pankaj dot pansari at plaksha.edu.in</p>
-<p><strong>May, 2025</strong></p>
-<p>Read our blog post <a href="https://pankajpansari.github.io/posts/paradoxes/">here</a> describing our small study on making LLMs reason in paradoxical situations.</p>
+<section id="memory-bandwidth-regulation-for-llm-inference-of-shared-memory-systems" class="level4">
+<h4 class="anchored" data-anchor-id="memory-bandwidth-regulation-for-llm-inference-of-shared-memory-systems">Memory Bandwidth Regulation for LLM Inference of Shared Memory Systems</h4>
+<p>with <a href="https://gdeepak11.github.io/">Dr.&nbsp;Deepak Gangadharan</a>, Assistant Professor, IIIT Hyderabad</p>
+<p>LLMs are increasingly being deployed on affordable, consumer hardware where GPU and CPU share the RAM (integrated GPU) such as embedded device Jetson Nano or compact desktop DGX Spark. LLM inference generates heavy traffic to the memory controller; this can hurt the latency-sensitive tasks running on the CPU. Our aim is to coordinate GPU-CPU memory accesses such that CPU tasks complete within their tight deadlines and GPU gives us good throughput.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
