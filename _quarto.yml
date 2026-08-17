@@ -1,0 +1,25 @@
+project:
+  type: website
+  output-dir: docs
+  resources:
+    - slurm-builder/**
+
+website:
+  title: "Kestrel Lab @ Plaksha"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home 
+      - href: projects.qmd
+        text: Projects 
+      - href: members.qmd
+        text: Members
+      - href: slurm-builder/index.html 
+        text: Slurm Builder
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+

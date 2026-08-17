@@ -1,0 +1,330 @@
+PLAKSHA HPC CLUSTER: SLURM JOB-SCRIPT REFERENCE
+================================================
+
+Snapshot date: 2026-08-17 (Asia/Kolkata)
+Cluster name: plakshahpc
+Slurm version: 25.11.4
+
+Purpose
+-------
+This document summarizes the Slurm resources and policies that users need when
+writing batch scripts. It can also be supplied to ChatGPT together with a
+program's resource requirements so that it can suggest suitable #SBATCH lines.
+
+Configuration can change. Before submitting important jobs, check the live
+values with:
+
+    sinfo
+    scontrol show partition
+    scontrol show node
+    sacctmgr show user "$USER" withassoc format=User,Account,Partition,QOS,DefaultQOS
+
+
+QUICK SELECTION GUIDE
+---------------------
+
+1. Choose a partition (hardware):
+
+   rtx   Default partition. Use for GPU jobs needing an RTX GPU slice and for
+         CPU-only jobs unless an administrator recommends otherwise.
+
+   h200  Use only when the job needs an NVIDIA H200 NVL GPU or the resources
+         of the H200 node. Access is restricted to paid and faculty QoS.
+
+2. Choose a QoS (policy/entitlement):
+
+   Use the DefaultQOS assigned to your Slurm account unless you have explicitly
+   been granted another QoS. Check your own assignment with the sacctmgr command
+   above. Request a non-default tier with:
+
+       #SBATCH --qos=<qos-name>
+
+3. Request only what the program needs. A larger CPU, GPU, memory, or time
+   request may wait longer in the queue.
+
+
+PARTITIONS AND COMPUTE NODES
+----------------------------
+
+Partition: rtx (DEFAULT)
+  Nodes:                 cn02, cn03
+  Maximum wall time:     7 days (7-00:00:00), further limited by QoS
+  Default wall time:     1 hour (01:00:00)
+  Allowed QoS:           paid, faculty, rfphd, course, general
+  Sharing:               consumable CPU/memory/GPU resources; no oversubscribe
+  Default CPUs per GPU:  12 if CPUs are not explicitly requested
+
+  cn02:
+    CPU:                 128 logical CPUs (2 sockets, 32 cores/socket,
+                         2 threads/core)
+    Slurm memory:        512000 MB (configured TRES shown as 500 GiB)
+    GPU GRES:            gpu:2g.48gb:2
+    Meaning:             two requestable 2g.48gb GPU instances
+
+  cn03:
+    CPU:                 128 logical CPUs (2 sockets, 32 cores/socket,
+                         2 threads/core)
+    Slurm memory:        512000 MB (configured TRES shown as 500 GiB)
+    GPU GRES:            gpu:1g.24gb:4
+    Meaning:             four requestable 1g.24gb GPU instances
+
+  RTX GPU request examples:
+
+      # One 24 GB GPU instance; this selects cn03
+      #SBATCH --partition=rtx
+      #SBATCH --gres=gpu:1g.24gb:1
+
+      # One 48 GB GPU instance; this selects cn02
+      #SBATCH --partition=rtx
+      #SBATCH --gres=gpu:2g.48gb:1
+
+  Requesting only "--gres=gpu:1" lets Slurm select either available RTX GRES
+  type. Prefer the typed form when GPU memory/capacity matters.
+
+
+Partition: h200
+  Nodes:                 cn01
+  Maximum wall time:     7 days (7-00:00:00), further limited by QoS
+  Default wall time:     1 hour (01:00:00)
+  Allowed QoS:           paid, faculty
+  Sharing:               consumable CPU/memory/GPU resources; no oversubscribe
+  Default CPUs per GPU:  32 if CPUs are not explicitly requested
+
+  cn01:
+    CPU:                 128 logical CPUs (2 sockets, 32 cores/socket,
+                         2 threads/core)
+    Slurm memory:        770000 MB (about 752 GiB)
+    GPU GRES:            gpu:nvidia_h200_nvl:2
+    Meaning:             two requestable NVIDIA H200 NVL GPUs
+
+  H200 GPU request example:
+
+      #SBATCH --partition=h200
+      #SBATCH --gres=gpu:nvidia_h200_nvl:1
+      #SBATCH --qos=faculty       # or paid, if assigned to the user
+
+
+Memory and CPU notes applying to both partitions
+------------------------------------------------
+
+  * Slurm allocates consumable CPUs and memory (SelectTypeParameters is
+    CR_CPU_MEMORY). CPU counts above are logical CPUs/hardware threads as Slurm
+    reports them.
+  * The cluster-wide default memory is 8192 MB per requested CPU. Explicitly
+    request memory to make the intended allocation clear, using either
+    --mem=<memory per node> or --mem-per-cpu=<memory> (do not use both).
+  * No swap is allowed for jobs, and RAM limits are enforced by cgroups. A job
+    that exceeds its requested memory may be killed for out-of-memory use.
+  * Node-local temporary disk is not advertised as a Slurm resource (TmpDisk=0).
+  * No node features/constraints are currently defined. Select GPU hardware by
+    partition and typed --gres rather than with --constraint.
+  * A job may span multiple nodes, but each partition is small: h200 has one
+    node and rtx has two. Multi-node jobs must use software configured for
+    distributed execution; requesting multiple nodes does not automatically
+    make an ordinary program parallel.
+
+
+QOS POLICIES
+------------
+
+The limits below are QoS limits. Partition limits also apply, and the effective
+limit is the more restrictive applicable limit. "GPU/user" is the maximum
+number of allocated generic GPUs across that user's running jobs in the QoS.
+"Running jobs/user" and "submitted jobs/user" are likewise per-user limits.
+
+QoS       Priority  Max time     GPU/user  Running jobs/user  Submitted/user
+--------- --------  -----------  --------  -----------------  --------------
+paid      1000      7 days       8         20                 200
+faculty    600      3 days       8         20                 200
+rfphd      400      5 days       4         10                 100
+course     200      4 hours      1          2                  10
+general    100      2 hours      1          2                  10
+scavenger    0      4 hours      none set   8                  50
+
+Important eligibility and behavior:
+
+  * QoS access comes from the user's/account's Slurm association. The fact that
+    a QoS exists does not mean every user may select it.
+  * h200 accepts only paid and faculty.
+  * rtx accepts paid, faculty, rfphd, course, and general.
+  * scavenger is configured and may be assigned to some accounts, but as of
+    this snapshot it is absent from both partitions' AllowQos lists. Therefore
+    it is not currently a usable job-script choice. Confirm with administrators
+    if scavenger access is intended.
+  * paid can preempt course, general, and scavenger jobs.
+  * faculty can preempt course, general, and scavenger jobs.
+  * rfphd can preempt scavenger jobs.
+  * Preemption mode is REQUEUE, with a cluster-wide 10-minute preemption-exempt
+    period. Applications should checkpoint where practical and scripts should
+    tolerate restart. Cluster jobs are requeue-enabled by default.
+  * course and general use DenyOnLimit: requests exceeding their QoS limits are
+    rejected rather than merely waiting for resources.
+  * Priority is multifactor. QoS priority and fair-share have substantial
+    weights, so queue order is not determined only by submission time.
+
+The "normal" QoS also exists internally, but it is not allowed by either user
+partition and should not be requested for ordinary work.
+
+ACCOUNTS
+-------------------
+
+Slurm accounts are used to identify which allocation or credit pool a job should be charged to. They are separate from QoS, which determines scheduling priority, wall-time limits, preemption, and other job policies.
+
+The cluster uses the following top-level Slurm accounts:
+
+root
+├── courses
+├── faculty
+├── rfphd
+├── general
+└── paid
+
+| Account   | Purpose                                      | Typical QoS            |
+| --------- | -------------------------------------------- | ---------------------- |
+| `courses` | Course-specific student allocation           | `course`               |
+| `faculty` | Free monthly faculty research allocation     | `faculty`              |
+| `rfphd`   | Free RF/PhD research allocation              | `rfphd`                |
+| `general` | General allocation available to all users    | `general`, `scavenger` |
+| `paid-*`  | Purchased or contributed-resource allocation | `paid`                 |
+
+SBATCH TEMPLATES
+----------------
+
+RTX: one 24 GB GPU instance
+
+    #!/bin/bash
+    #SBATCH --job-name=my_job
+    #SBATCH --partition=rtx
+    #SBATCH --qos=general             # change/remove according to your account
+    #SBATCH --gres=gpu:1g.24gb:1
+    #SBATCH --nodes=1
+    #SBATCH --ntasks=1
+    #SBATCH --cpus-per-task=4
+    #SBATCH --mem=32G
+    #SBATCH --time=01:00:00
+    #SBATCH --output=slurm-%j.out
+
+    # Load the site's required environment/modules here, then use srun:
+    srun python my_program.py
+
+
+RTX: one 48 GB GPU instance
+
+    #!/bin/bash
+    #SBATCH --job-name=my_job
+    #SBATCH --partition=rtx
+    #SBATCH --qos=faculty             # change/remove according to your account
+    #SBATCH --gres=gpu:2g.48gb:1
+    #SBATCH --nodes=1
+    #SBATCH --ntasks=1
+    #SBATCH --cpus-per-task=8
+    #SBATCH --mem=64G
+    #SBATCH --time=04:00:00
+    #SBATCH --output=slurm-%j.out
+
+    srun python my_program.py
+
+
+H200: one GPU
+
+    #!/bin/bash
+    #SBATCH --job-name=my_job
+    #SBATCH --partition=h200
+    #SBATCH --qos=faculty             # or paid; must be assigned to you
+    #SBATCH --gres=gpu:nvidia_h200_nvl:1
+    #SBATCH --nodes=1
+    #SBATCH --ntasks=1
+    #SBATCH --cpus-per-task=16
+    #SBATCH --mem=128G
+    #SBATCH --time=08:00:00
+    #SBATCH --output=slurm-%j.out
+
+    srun python my_program.py
+
+
+CPU-only, single process
+
+    #!/bin/bash
+    #SBATCH --job-name=cpu_job
+    #SBATCH --partition=rtx
+    #SBATCH --qos=general             # change/remove according to your account
+    #SBATCH --nodes=1
+    #SBATCH --ntasks=1
+    #SBATCH --cpus-per-task=8
+    #SBATCH --mem=32G
+    #SBATCH --time=01:00:00
+    #SBATCH --output=slurm-%j.out
+
+    srun python my_program.py
+
+The numbers in these templates are examples, not recommendations for every
+program. Match --cpus-per-task to the program's real thread count, --mem to its
+measured peak RAM plus a modest margin, and --time to expected runtime plus a
+margin. Do not request a GPU for code that cannot use one.
+
+
+USEFUL LIVE CHECKS
+------------------
+
+Show partition/node availability:
+
+    sinfo -o "%P %N %a %t %c %m %G"
+
+Show full partition or node configuration:
+
+    scontrol show partition
+    scontrol show node
+
+Show your account, permitted QoS, and default QoS:
+
+    sacctmgr show user "$USER" withassoc format=User,Account,Partition,QOS,DefaultQOS
+
+Validate a script without submitting it (when supported by the installed
+sbatch version):
+
+    sbatch --test-only job.slurm
+
+Inspect why a submitted job is pending:
+
+    squeue --me --start
+    scontrol show job <job-id>
+
+Inspect completed-job resource use to tune later requests:
+
+    sacct -j <job-id> --format=JobID,State,Elapsed,AllocCPUS,ReqMem,MaxRSS,AllocTRES
+
+
+INFORMATION TO GIVE CHATGPT FOR A JOB-SCRIPT RECOMMENDATION
+----------------------------------------------------------
+
+Supply this file plus the following facts. Do not include secrets, passwords,
+API keys, private datasets, or credentials.
+
+  * Your permitted QoS and DefaultQOS from the sacctmgr command above
+  * The command that runs the program
+  * Whether it is CPU-only or GPU-enabled
+  * Required GPU type and GPU memory, if known
+  * Number of processes, CPU threads per process, and whether it is multi-node
+  * Estimated or previously measured RAM and runtime
+  * Whether the program can checkpoint/restart after preemption
+  * Relevant framework (for example PyTorch, TensorFlow, MPI, OpenMP)
+  * Input size and how resource use scales with it
+
+Suggested prompt:
+
+    Using the attached Plaksha HPC Slurm reference and my code/run command,
+    recommend a conservative but efficient Slurm batch script. Explain the
+    partition, QoS, GPU GRES, CPU, memory, task, node, and time choices. Do not
+    invent cluster options. Point out anything that must be measured or checked
+    with the administrator. My permitted QoS/default is: [...]. My run command
+    is: [...]. My workload details are: [...].
+
+
+SOURCE AND SCOPE
+----------------
+
+This snapshot was generated from live output of sinfo, scontrol show partition,
+scontrol show node, scontrol show config, and sacctmgr show qos/assoc. Transient
+node states and free memory were deliberately omitted because they quickly
+become stale. Individual usernames and membership lists are also omitted; users
+should query their own association instead.

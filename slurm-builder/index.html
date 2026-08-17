@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Build a single-node Slurm job script for the Plaksha HPC cluster."
+    />
+    <title>Plaksha HPC · Job Script Builder</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Plaksha HPC script builder home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44" role="img">
+            <path d="M8 10h28v7H15v17H8V10Z" />
+            <path d="M19 21h17v13H19V21Zm7 6v3h4v-3h-4Z" />
+          </svg>
+        </span>
+        <span>
+          <strong>Plaksha HPC</strong>
+          <small>Job Script Builder</small>
+        </span>
+      </a>
+      <div class="header-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        Cluster reference · Aug 2026
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">SLURM, WITHOUT THE GUESSWORK</p>
+          <h1 id="page-title">Build your job script.</h1>
+          <p class="hero-copy">
+            Choose what your Python or ML workload needs. We’ll translate it into a
+            clear, valid single-node script for the cluster.
+          </p>
+        </div>
+        <div class="hero-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 13.5v-5m0-3v-.1" />
+          </svg>
+          <p>
+            This tool generates a script—it does not submit a job or verify your
+            cluster access.
+          </p>
+        </div>
+      </section>
+
+      <form id="builder-form" novalidate>
+        <section class="form-section" aria-labelledby="workload-heading">
+          <div class="section-number">01</div>
+          <div class="section-content">
+            <div class="section-heading">
+              <div>
+                <h2 id="workload-heading">What are you running?</h2>
+                <p>Your choice sets the right partition and GPU type automatically.</p>
+              </div>
+            </div>
+
+            <div class="workload-grid" id="workload-options">
+              <label class="choice-card">
+                <input type="radio" name="workload" value="cpu" checked />
+                <span class="choice-check" aria-hidden="true"></span>
+                <span class="choice-icon cpu-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32">
+                    <rect x="8" y="8" width="16" height="16" rx="2" />
+                    <rect x="12" y="12" width="8" height="8" rx="1" />
+                    <path d="M12 3v5m8-5v5M12 24v5m8-5v5M3 12h5m-5 8h5m16-8h5m-5 8h5" />
+                  </svg>
+                </span>
+                <strong>CPU only</strong>
+                <span>Python, data processing, or code that doesn’t use a GPU.</span>
+                <small>RTX partition</small>
+              </label>
+
+              <label class="choice-card">
+                <input type="radio" name="workload" value="rtx24" />
+                <span class="choice-check" aria-hidden="true"></span>
+                <span class="choice-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32">
+                    <rect x="3" y="7" width="26" height="18" rx="3" />
+                    <circle cx="12" cy="16" r="5" />
+                    <path d="M21 12h4m-4 4h4m-4 4h4M7 28v-3m18 3v-3" />
+                  </svg>
+                </span>
+                <strong>RTX · 24 GB</strong>
+                <span>Small models, inference, and lighter GPU experiments.</span>
+                <small>1g.24gb slice · up to 4</small>
+              </label>
+
+              <label class="choice-card">
+                <input type="radio" name="workload" value="rtx48" />
+                <span class="choice-check" aria-hidden="true"></span>
+                <span class="choice-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32">
+                    <rect x="3" y="7" width="26" height="18" rx="3" />
+                    <circle cx="12" cy="16" r="5" />
+                    <path d="M21 12h4m-4 4h4m-4 4h4M7 28v-3m18 3v-3" />
+                  </svg>
+                </span>
+                <strong>RTX · 48 GB</strong>
+                <span>Larger models or workloads that need more GPU memory.</span>
+                <small>2g.48gb slice · up to 2</small>
+              </label>
+
+              <label class="choice-card">
+                <input type="radio" name="workload" value="h200" />
+                <span class="choice-check" aria-hidden="true"></span>
+                <span class="choice-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32">
+                    <rect x="3" y="7" width="26" height="18" rx="3" />
+                    <circle cx="12" cy="16" r="5" />
+                    <path d="M21 12h4m-4 4h4m-4 4h4M7 28v-3m18 3v-3" />
+                  </svg>
+                </span>
+                <strong>NVIDIA H200</strong>
+                <span>High-memory, demanding ML training and research workloads.</span>
+                <small>Faculty or paid access · up to 2</small>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="allocation-heading">
+          <div class="section-number">02</div>
+          <div class="section-content">
+            <div class="section-heading">
+              <div>
+                <h2 id="allocation-heading">Which allocation should pay for it?</h2>
+                <p>Choose an account assigned to your university username.</p>
+              </div>
+              <button class="help-button" type="button" data-dialog="account-help">
+                Account or QoS?
+              </button>
+            </div>
+
+            <div class="field-grid two-columns">
+              <label class="field">
+                <span>Slurm account</span>
+                <select id="account" name="account">
+                  <option value="general">General</option>
+                  <option value="courses">Course</option>
+                  <option value="faculty">Faculty</option>
+                  <option value="rfphd">RF / PhD</option>
+                  <option value="paid">Paid allocation</option>
+                </select>
+                <small id="account-help-text">Uses the general allocation available to all users.</small>
+              </label>
+
+              <label class="field hidden" id="paid-account-field">
+                <span>Paid account name</span>
+                <input
+                  id="paid-account"
+                  name="paidAccount"
+                  type="text"
+                  placeholder="paid-project-name"
+                  autocomplete="off"
+                />
+                <small>Enter the exact paid sub-account assigned to you.</small>
+              </label>
+            </div>
+
+            <fieldset class="policy-fieldset">
+              <legend>Scheduling policy</legend>
+              <div class="segmented-control">
+                <label>
+                  <input type="radio" name="policy" value="standard" checked />
+                  <span>
+                    <strong>Standard</strong>
+                    <small id="standard-qos-label">general QoS · up to 2 hours</small>
+                  </span>
+                </label>
+                <label id="scavenger-option">
+                  <input type="radio" name="policy" value="scavenger" />
+                  <span>
+                    <strong>Scavenger</strong>
+                    <small>Lowest priority · may be preempted · up to 4 hours</small>
+                  </span>
+                </label>
+              </div>
+              <p class="field-note" id="policy-note">
+                Scavenger is available to every account on the RTX partition only.
+              </p>
+            </fieldset>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="resources-heading">
+          <div class="section-number">03</div>
+          <div class="section-content">
+            <div class="section-heading">
+              <div>
+                <h2 id="resources-heading">How much does it need?</h2>
+                <p>Start small and adjust using measurements from earlier runs.</p>
+              </div>
+              <button id="reset-preset" class="help-button" type="button">
+                Restore starter values
+              </button>
+            </div>
+
+            <div class="resource-grid">
+              <label class="field hidden" id="gpu-count-field">
+                <span>GPUs</span>
+                <div class="number-input">
+                  <button type="button" data-step="-1" data-target="gpus" aria-label="Decrease GPUs">−</button>
+                  <input id="gpus" name="gpus" type="number" min="1" max="4" value="1" inputmode="numeric" />
+                  <button type="button" data-step="1" data-target="gpus" aria-label="Increase GPUs">+</button>
+                </div>
+                <small id="gpu-limit">Maximum 4 on this node.</small>
+              </label>
+
+              <label class="field">
+                <span>CPU threads</span>
+                <div class="number-input">
+                  <button type="button" data-step="-1" data-target="cpus" aria-label="Decrease CPU threads">−</button>
+                  <input id="cpus" name="cpus" type="number" min="1" max="128" value="4" inputmode="numeric" />
+                  <button type="button" data-step="1" data-target="cpus" aria-label="Increase CPU threads">+</button>
+                </div>
+                <small>Passed as <code>--cpus-per-task</code>.</small>
+              </label>
+
+              <label class="field">
+                <span>Total RAM</span>
+                <div class="input-with-suffix">
+                  <input id="memory" name="memory" type="number" min="1" max="500" value="32" inputmode="numeric" />
+                  <span>GB</span>
+                </div>
+                <small id="memory-limit">Maximum 500 GB on RTX nodes.</small>
+              </label>
+
+              <div class="field duration-field">
+                <span>Maximum runtime</span>
+                <div class="duration-inputs">
+                  <label>
+                    <input id="days" name="days" type="number" min="0" max="7" value="0" inputmode="numeric" />
+                    <span>days</span>
+                  </label>
+                  <label>
+                    <input id="hours" name="hours" type="number" min="0" max="23" value="1" inputmode="numeric" />
+                    <span>hours</span>
+                  </label>
+                  <label>
+                    <input id="minutes" name="minutes" type="number" min="0" max="59" value="0" inputmode="numeric" />
+                    <span>min</span>
+                  </label>
+                </div>
+                <small id="time-limit">General QoS allows up to 2 hours.</small>
+              </div>
+            </div>
+
+            <aside class="ai-help-card" aria-labelledby="ai-help-heading">
+              <div class="ai-help-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32">
+                  <path d="M16 3.5a9.5 9.5 0 0 0-5.7 17.1c1.1.8 1.7 2 1.7 3.3v.6h8v-.6c0-1.3.6-2.5 1.7-3.3A9.5 9.5 0 0 0 16 3.5Z" />
+                  <path d="M12 28.5h8M12.5 15.5l2.2 2.2 4.8-5.2" />
+                </svg>
+              </div>
+              <div class="ai-help-content">
+                <div class="ai-help-heading">
+                  <div>
+                    <span class="optional-label">OPTIONAL HELP</span>
+                    <h3 id="ai-help-heading">Not sure what resources to request?</h3>
+                  </div>
+                  <span class="ai-badge">AI-assisted estimate</span>
+                </div>
+                <p>
+                  ChatGPT or Claude can suggest a starting point when you give it your
+                  code, run command, workload details, and this cluster guide.
+                  Its answer is an estimate—not a measurement.
+                </p>
+                <ol class="ai-help-steps">
+                  <li><span>1</span>Download and attach the cluster guide.</li>
+                  <li><span>2</span>Attach your code, or describe what it does and the input size.</li>
+                  <li><span>3</span>Paste the starter prompt and refine this form with the answer.</li>
+                </ol>
+                <div class="ai-help-actions">
+                  <a class="guide-button" href="HPC_CLUSTER_SLURM_GUIDE.txt" download>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16" /></svg>
+                    Download cluster guide
+                    <small>TXT · snapshot 17 Aug 2026</small>
+                  </a>
+                  <button id="copy-ai-prompt" class="prompt-button" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+                    Copy starter prompt
+                  </button>
+                </div>
+                <p class="privacy-note">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+                  Never upload passwords, API keys, credentials, private datasets, or sensitive code.
+                  Start with a small representative run and use <code>sacct</code> to improve later requests.
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="execution-heading">
+          <div class="section-number">04</div>
+          <div class="section-content">
+            <div class="section-heading">
+              <div>
+                <h2 id="execution-heading">How should it run?</h2>
+                <p>Give the job a name and enter the same command you use in a terminal.</p>
+              </div>
+            </div>
+
+            <div class="field-grid two-columns">
+              <label class="field">
+                <span>Job name</span>
+                <input id="job-name" name="jobName" type="text" value="my_job" maxlength="64" autocomplete="off" />
+                <small>Letters, numbers, dots, underscores, and hyphens.</small>
+              </label>
+              <label class="field">
+                <span>Output file</span>
+                <input id="output-file" name="outputFile" type="text" value="slurm-%j.out" autocomplete="off" />
+                <small><code>%j</code> is replaced with the Slurm job ID.</small>
+              </label>
+            </div>
+
+            <label class="field command-field">
+              <span>Program command</span>
+              <input id="command" name="command" type="text" value="python train.py" autocomplete="off" spellcheck="false" />
+            </label>
+
+            <fieldset class="environment-fieldset">
+              <legend>Execution environment</legend>
+              <div class="environment-tabs" role="radiogroup">
+                <label><input type="radio" name="environment" value="cluster" checked /><span>Cluster default</span></label>
+                <label><input type="radio" name="environment" value="singularity" /><span>Singularity</span></label>
+                <label><input type="radio" name="environment" value="conda" /><span>Conda</span></label>
+                <label><input type="radio" name="environment" value="custom" /><span>Custom setup</span></label>
+              </div>
+            </fieldset>
+
+            <div id="environment-fields">
+              <div class="environment-panel hidden" data-environment-panel="singularity">
+                <div class="field-grid two-columns">
+                  <label class="field">
+                    <span>Container image</span>
+                    <input id="container-image" name="containerImage" type="text" placeholder="/path/to/model.sif" autocomplete="off" />
+                  </label>
+                  <label class="field">
+                    <span>Bind mounts <em>optional</em></span>
+                    <input id="bind-mounts" name="bindMounts" type="text" placeholder="/data:/data,/scratch:/scratch" autocomplete="off" />
+                  </label>
+                </div>
+                <label class="field">
+                  <span>Extra Singularity arguments <em>optional</em></span>
+                  <input id="container-args" name="containerArgs" type="text" placeholder="--cleanenv" autocomplete="off" />
+                </label>
+                <p class="field-note">GPU jobs automatically include <code>--nv</code>.</p>
+              </div>
+
+              <div class="environment-panel hidden" data-environment-panel="conda">
+                <label class="field narrow-field">
+                  <span>Conda environment name</span>
+                  <input id="conda-env" name="condaEnv" type="text" placeholder="my-environment" autocomplete="off" />
+                  <small>Conda must already be available on the compute node.</small>
+                </label>
+              </div>
+
+              <div class="environment-panel hidden" data-environment-panel="custom">
+                <label class="field">
+                  <span>Setup commands</span>
+                  <textarea id="custom-setup" name="customSetup" rows="4" placeholder="# Example: module load ..."></textarea>
+                  <small>These lines run before your main command.</small>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+      </form>
+
+      <section class="result-section" aria-labelledby="result-heading">
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">YOUR GENERATED FILE</p>
+            <h2 id="result-heading"><span id="result-job-name">my_job</span>.slurm</h2>
+          </div>
+          <div class="result-actions">
+            <button id="share-button" class="button button-secondary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12h8m-4-4 4 4-4 4M5 5h6m-6 0v14h6" /></svg>
+              Share setup
+            </button>
+            <button id="copy-button" class="button button-secondary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+              Copy
+            </button>
+            <button id="download-button" class="button button-primary" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16" /></svg>
+              Download
+            </button>
+          </div>
+        </div>
+
+        <div id="validation-summary" class="validation-summary" aria-live="polite"></div>
+
+        <div class="result-grid">
+          <div class="code-window">
+            <div class="code-toolbar">
+              <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <span>SLURM SCRIPT</span>
+              <span id="line-count">14 lines</span>
+            </div>
+            <pre aria-label="Generated Slurm script"><code id="script-preview"></code></pre>
+          </div>
+
+          <aside class="script-summary" aria-labelledby="summary-heading">
+            <h3 id="summary-heading">What you’re requesting</h3>
+            <div id="summary-list" class="summary-list"></div>
+            <div class="submit-card">
+              <span>When you’re on the cluster</span>
+              <code>sbatch <span id="submit-filename">my_job.slurm</span></code>
+              <p>Validate first with <code>sbatch --test-only</code> when available.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Built from the Plaksha HPC cluster reference · Configuration can change.</p>
+      <a href="HPC_CLUSTER_SLURM_GUIDE.txt" download>Download cluster guide</a>
+      <code>sinfo</code>
+      <code>sacctmgr show user "$USER" withassoc</code>
+    </footer>
+
+    <dialog id="account-help">
+      <button class="dialog-close" type="button" aria-label="Close">×</button>
+      <p class="eyebrow">TWO DIFFERENT JOB SETTINGS</p>
+      <h2>Account vs. QoS</h2>
+      <p><strong>Account</strong> decides which university allocation or credit pool is charged.</p>
+      <p><strong>QoS</strong> controls scheduling priority, runtime limits, and preemption policy.</p>
+      <p>This builder selects the usual QoS for your account. It cannot verify which accounts your username may use.</p>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="slurm.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
