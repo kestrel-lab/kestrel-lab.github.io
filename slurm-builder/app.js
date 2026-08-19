@@ -17,7 +17,6 @@
     resources: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"/></svg>',
     allocation: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.6-4.2 3-6 7.5-6s6.9 1.8 7.5 6"/></svg>',
     time: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-    environment: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12v9"/></svg>',
   };
 
   function selected(name) {
@@ -28,7 +27,6 @@
     return builder.normalizeConfig({
       workload: selected("workload"),
       account: form.elements.account.value,
-      paidAccount: form.elements.paidAccount.value,
       policy: selected("policy"),
       gpus: form.elements.gpus.value,
       cpus: form.elements.cpus.value,
@@ -39,12 +37,6 @@
       jobName: form.elements.jobName.value,
       outputFile: form.elements.outputFile.value,
       command: form.elements.command.value,
-      environment: selected("environment"),
-      containerImage: form.elements.containerImage.value,
-      bindMounts: form.elements.bindMounts.value,
-      containerArgs: form.elements.containerArgs.value,
-      condaEnv: form.elements.condaEnv.value,
-      customSetup: form.elements.customSetup.value,
     });
   }
 
@@ -57,7 +49,6 @@
     const c = builder.normalizeConfig(config);
     setRadio("workload", c.workload);
     form.elements.account.value = c.account;
-    form.elements.paidAccount.value = c.paidAccount;
     setRadio("policy", c.policy);
     form.elements.gpus.value = c.gpus || 1;
     form.elements.cpus.value = c.cpus;
@@ -68,12 +59,6 @@
     form.elements.jobName.value = c.jobName;
     form.elements.outputFile.value = c.outputFile;
     form.elements.command.value = c.command;
-    setRadio("environment", c.environment);
-    form.elements.containerImage.value = c.containerImage;
-    form.elements.bindMounts.value = c.bindMounts;
-    form.elements.containerArgs.value = c.containerArgs;
-    form.elements.condaEnv.value = c.condaEnv;
-    form.elements.customSetup.value = c.customSetup;
   }
 
   function formatLimit(minutes) {
@@ -92,23 +77,28 @@
     form.elements.gpus.max = workload.maxGpus || 1;
     document.querySelector("#gpu-limit").textContent = `Maximum ${workload.maxGpus} on this node.`;
 
-    document.querySelector("#paid-account-field").classList.toggle("hidden", c.account !== "paid");
     document.querySelector("#account-help-text").textContent = account.description;
     document.querySelector("#standard-qos-label").textContent = `${account.qos} QoS · up to ${formatLimit(standardQos.maxMinutes)}`;
 
+    const generalOption = document.querySelector("#general-option");
+    const generalInput = form.querySelector('input[name="policy"][value="general"]');
     const scavengerInput = form.querySelector('input[name="policy"][value="scavenger"]');
+    generalOption.classList.toggle("hidden", c.account === "general");
+    generalInput.disabled = isH200 || c.account === "general";
     scavengerInput.disabled = isH200;
-    if (isH200 && scavengerInput.checked) setRadio("policy", "standard");
-    document.querySelector("#policy-note").textContent = isH200
-      ? "Scavenger is unavailable on H200. H200 requires a faculty or paid account."
-      : "Scavenger is available to every account on the RTX partition only.";
+    if ((generalInput.disabled && generalInput.checked) || (isH200 && scavengerInput.checked)) {
+      setRadio("policy", "standard");
+    }
+    if (isH200) {
+      document.querySelector("#policy-note").textContent = "H200 accepts only the faculty or paid account's matching QoS. QoS limits are enforced at submission.";
+    } else if (c.account === "general") {
+      document.querySelector("#policy-note").textContent = "The general account can use General or Scavenger QoS on RTX. QoS limits are enforced at submission.";
+    } else {
+      document.querySelector("#policy-note").textContent = `The ${account.account} account can use ${account.qos}, general, or scavenger QoS on RTX. QoS limits are enforced at submission.`;
+    }
 
     form.elements.memory.max = workload.maxMemoryGb;
     document.querySelector("#memory-limit").textContent = `Maximum ${workload.maxMemoryGb} GB on ${workload.partition.toUpperCase()} nodes.`;
-
-    document.querySelectorAll("[data-environment-panel]").forEach((panel) => {
-      panel.classList.toggle("hidden", panel.dataset.environmentPanel !== c.environment);
-    });
 
     const qosName = builder.qosFor(readConfig());
     document.querySelector("#time-limit").textContent = `${builder.QOS[qosName].label} QoS allows up to ${formatLimit(builder.QOS[qosName].maxMinutes)}.`;

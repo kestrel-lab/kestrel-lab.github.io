@@ -71,25 +71,24 @@
     },
     paid: {
       label: "Paid",
-      account: null,
+      account: "paid",
       qos: "paid",
-      description: "Uses purchased credits from a paid sub-account.",
+      description: "Uses purchased credits from the paid allocation account.",
     },
   });
 
   const QOS = Object.freeze({
     paid: { label: "Paid", maxMinutes: 7 * 24 * 60 },
-    faculty: { label: "Faculty", maxMinutes: 3 * 24 * 60 },
+    faculty: { label: "Faculty", maxMinutes: 5 * 24 * 60 },
     rfphd: { label: "RF / PhD", maxMinutes: 5 * 24 * 60 },
-    course: { label: "Course", maxMinutes: 4 * 60 },
-    general: { label: "General", maxMinutes: 2 * 60 },
+    course: { label: "Course", maxMinutes: 12 * 60 },
+    general: { label: "General", maxMinutes: 12 * 60 },
     scavenger: { label: "Scavenger", maxMinutes: 4 * 60 },
   });
 
   const DEFAULT_CONFIG = Object.freeze({
     workload: "cpu",
     account: "general",
-    paidAccount: "",
     policy: "standard",
     gpus: 0,
     cpus: 4,
@@ -100,12 +99,6 @@
     jobName: "my_job",
     outputFile: "slurm-%j.out",
     command: "python train.py",
-    environment: "cluster",
-    containerImage: "",
-    bindMounts: "",
-    containerArgs: "",
-    condaEnv: "",
-    customSetup: "",
   });
 
   function integer(value, fallback) {
@@ -117,15 +110,12 @@
     const raw = Object.assign({}, DEFAULT_CONFIG, input || {});
     const workload = WORKLOADS[raw.workload] ? raw.workload : DEFAULT_CONFIG.workload;
     const account = ACCOUNTS[raw.account] ? raw.account : DEFAULT_CONFIG.account;
-    const environment = ["cluster", "singularity", "conda", "custom"].includes(raw.environment)
-      ? raw.environment
-      : "cluster";
-    const policy = raw.policy === "scavenger" && workload !== "h200" ? "scavenger" : "standard";
+    let policy = ["standard", "general", "scavenger"].includes(raw.policy) ? raw.policy : "standard";
+    if (workload === "h200" || (account === "general" && policy === "general")) policy = "standard";
 
     return {
       workload,
       account,
-      paidAccount: String(raw.paidAccount || "").trim(),
       policy,
       gpus: integer(raw.gpus, WORKLOADS[workload].preset.gpus),
       cpus: integer(raw.cpus, WORKLOADS[workload].preset.cpus),
@@ -136,23 +126,19 @@
       jobName: String(raw.jobName || "").trim(),
       outputFile: String(raw.outputFile || "").trim(),
       command: String(raw.command || "").trim(),
-      environment,
-      containerImage: String(raw.containerImage || "").trim(),
-      bindMounts: String(raw.bindMounts || "").trim(),
-      containerArgs: String(raw.containerArgs || "").trim(),
-      condaEnv: String(raw.condaEnv || "").trim(),
-      customSetup: String(raw.customSetup || "").replace(/\r\n/g, "\n").trim(),
     };
   }
 
   function qosFor(config) {
     const normalized = normalizeConfig(config);
-    return normalized.policy === "scavenger" ? "scavenger" : ACCOUNTS[normalized.account].qos;
+    if (normalized.policy === "scavenger") return "scavenger";
+    if (normalized.policy === "general") return "general";
+    return ACCOUNTS[normalized.account].qos;
   }
 
   function accountFor(config) {
     const normalized = normalizeConfig(config);
-    return normalized.account === "paid" ? normalized.paidAccount : ACCOUNTS[normalized.account].account;
+    return ACCOUNTS[normalized.account].account;
   }
 
   function totalMinutes(config) {
@@ -205,22 +191,11 @@
     if (!c.command) {
       errors.push("Enter the command that runs your program.");
     } else if (hasLineBreak(c.command)) {
-      errors.push("The main program command must stay on one line. Use Custom setup for additional commands.");
-    }
-
-    if (c.account === "paid") {
-      if (!c.paidAccount) errors.push("Enter the paid Slurm account assigned to you.");
-      else if (!/^paid-[A-Za-z0-9._-]+$/.test(c.paidAccount)) {
-        errors.push("Paid account names must start with “paid-” and contain no spaces.");
-      }
+      errors.push("The program command must stay on one line.");
     }
 
     if (c.workload === "h200" && !["faculty", "paid"].includes(c.account)) {
       errors.push("H200 jobs require a faculty or paid account.");
-    }
-
-    if (c.workload === "h200" && c.policy === "scavenger") {
-      errors.push("Scavenger QoS is available only on the RTX partition.");
     }
 
     if (workload.gres) {
@@ -250,50 +225,19 @@
       );
     }
 
-    if (c.policy === "scavenger") {
-      warnings.push("Scavenger jobs have the lowest priority and may be preempted and requeued. Save checkpoints when practical.");
+    if (qosName === "scavenger") {
+      warnings.push("Scavenger jobs have the lowest priority, cannot reserve resources, and may be preempted and requeued. Save checkpoints when practical.");
     }
 
     if (workload.gres && c.cpus > 32 * c.gpus) {
       warnings.push("This is a high CPU request for the selected GPU count and may increase queue time.");
     }
 
-    if (c.environment === "singularity") {
-      if (!c.containerImage) errors.push("Enter the path to your Singularity image.");
-      else if (hasLineBreak(c.containerImage)) errors.push("Container image path must stay on one line.");
-      if (hasLineBreak(c.bindMounts)) errors.push("Bind mounts must stay on one line.");
-      if (hasLineBreak(c.containerArgs)) errors.push("Extra Singularity arguments must stay on one line.");
-    }
-
-    if (c.environment === "conda") {
-      if (!c.condaEnv) errors.push("Enter a Conda environment name.");
-      else if (!/^[A-Za-z0-9._-]+$/.test(c.condaEnv)) {
-        errors.push("Conda environment name contains unsupported characters.");
-      }
-    }
-
     return { errors, warnings };
-  }
-
-  function shellQuote(value) {
-    const text = String(value);
-    if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(text)) return text;
-    return `'${text.replace(/'/g, `'"'"'`)}'`;
   }
 
   function executionCommand(config) {
     const c = normalizeConfig(config);
-    if (c.environment === "singularity") {
-      const args = ["srun", "singularity", "exec"];
-      if (WORKLOADS[c.workload].gres) args.push("--nv");
-      if (c.bindMounts) args.push("--bind", shellQuote(c.bindMounts));
-      if (c.containerArgs) args.push(c.containerArgs);
-      args.push(shellQuote(c.containerImage), c.command);
-      return args.join(" ");
-    }
-    if (c.environment === "conda") {
-      return `srun conda run --no-capture-output -n ${shellQuote(c.condaEnv)} ${c.command}`;
-    }
     return `srun ${c.command}`;
   }
 
@@ -319,10 +263,6 @@
       "",
     );
 
-    if (c.environment === "custom" && c.customSetup) {
-      lines.push("# Environment setup", ...c.customSetup.split("\n"), "");
-    }
-
     lines.push(executionCommand(c));
     return lines.join("\n");
   }
@@ -334,19 +274,11 @@
     const hardwareDetail = workload.gres
       ? `${c.gpus} × ${workload.hardware}`
       : "CPU-only workload on the RTX partition";
-    const environmentLabels = {
-      cluster: "Cluster default environment",
-      singularity: `Singularity · ${c.containerImage || "image not set"}`,
-      conda: `Conda · ${c.condaEnv || "environment not set"}`,
-      custom: "Custom environment setup",
-    };
-
     return [
       { key: "hardware", title: "Hardware", detail: hardwareDetail },
       { key: "resources", title: "Compute resources", detail: `${c.cpus} CPU threads · ${c.memoryGb} GB RAM · one node` },
       { key: "allocation", title: "Allocation & policy", detail: `${accountFor(c) || "Account not set"} account · ${qosName} QoS` },
       { key: "time", title: "Maximum runtime", detail: humanDuration(totalMinutes(c)) },
-      { key: "environment", title: "Environment", detail: environmentLabels[c.environment] },
     ];
   }
 
@@ -365,6 +297,8 @@ Explain your choices for GPU type and count, CPU threads, total RAM, wall time, 
 
 Run command:
 ${c.command || "[ENTER THE COMMAND]"}
+
+The builder runs this command directly with srun in the cluster default environment.
 
 Current workload category:
 ${workload.label}
@@ -399,7 +333,6 @@ Return recommended values that I can enter in the Plaksha HPC Job Script Builder
     humanDuration,
     slurmTime,
     validate,
-    shellQuote,
     executionCommand,
     generateScript,
     summary,

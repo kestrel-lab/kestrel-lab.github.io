@@ -139,7 +139,7 @@
               </button>
             </div>
 
-            <div class="field-grid two-columns">
+            <div class="field-grid">
               <label class="field">
                 <span>Slurm account</span>
                 <select id="account" name="account">
@@ -151,18 +151,6 @@
                 </select>
                 <small id="account-help-text">Uses the general allocation available to all users.</small>
               </label>
-
-              <label class="field hidden" id="paid-account-field">
-                <span>Paid account name</span>
-                <input
-                  id="paid-account"
-                  name="paidAccount"
-                  type="text"
-                  placeholder="paid-project-name"
-                  autocomplete="off"
-                />
-                <small>Enter the exact paid sub-account assigned to you.</small>
-              </label>
             </div>
 
             <fieldset class="policy-fieldset">
@@ -172,19 +160,26 @@
                   <input type="radio" name="policy" value="standard" checked />
                   <span>
                     <strong>Standard</strong>
-                    <small id="standard-qos-label">general QoS · up to 2 hours</small>
+                    <small id="standard-qos-label">general QoS · up to 12 hours</small>
+                  </span>
+                </label>
+                <label id="general-option" class="hidden">
+                  <input type="radio" name="policy" value="general" />
+                  <span>
+                    <strong>General</strong>
+                    <small>General-purpose QoS · up to 12 hours</small>
                   </span>
                 </label>
                 <label id="scavenger-option">
                   <input type="radio" name="policy" value="scavenger" />
                   <span>
                     <strong>Scavenger</strong>
-                    <small>Lowest priority · may be preempted · up to 4 hours</small>
+                    <small>Preemptible · no reservation · up to 4 hours</small>
                   </span>
                 </label>
               </div>
               <p class="field-note" id="policy-note">
-                Scavenger is available to every account on the RTX partition only.
+                The general account can use General or Scavenger QoS on RTX. QoS limits are enforced at submission.
               </p>
             </fieldset>
           </div>
@@ -249,7 +244,7 @@
                     <span>min</span>
                   </label>
                 </div>
-                <small id="time-limit">General QoS allows up to 2 hours.</small>
+                <small id="time-limit">General QoS allows up to 12 hours.</small>
               </div>
             </div>
 
@@ -282,7 +277,7 @@
                   <a class="guide-button" href="HPC_CLUSTER_SLURM_GUIDE.txt" download>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 20h16" /></svg>
                     Download cluster guide
-                    <small>TXT · snapshot 17 Aug 2026</small>
+                    <small>TXT · snapshot 19 Aug 2026</small>
                   </a>
                   <button id="copy-ai-prompt" class="prompt-button" type="button">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
@@ -325,53 +320,8 @@
             <label class="field command-field">
               <span>Program command</span>
               <input id="command" name="command" type="text" value="python train.py" autocomplete="off" spellcheck="false" />
+              <small>Runs with <code>srun</code> in the cluster default environment.</small>
             </label>
-
-            <fieldset class="environment-fieldset">
-              <legend>Execution environment</legend>
-              <div class="environment-tabs" role="radiogroup">
-                <label><input type="radio" name="environment" value="cluster" checked /><span>Cluster default</span></label>
-                <label><input type="radio" name="environment" value="singularity" /><span>Singularity</span></label>
-                <label><input type="radio" name="environment" value="conda" /><span>Conda</span></label>
-                <label><input type="radio" name="environment" value="custom" /><span>Custom setup</span></label>
-              </div>
-            </fieldset>
-
-            <div id="environment-fields">
-              <div class="environment-panel hidden" data-environment-panel="singularity">
-                <div class="field-grid two-columns">
-                  <label class="field">
-                    <span>Container image</span>
-                    <input id="container-image" name="containerImage" type="text" placeholder="/path/to/model.sif" autocomplete="off" />
-                  </label>
-                  <label class="field">
-                    <span>Bind mounts <em>optional</em></span>
-                    <input id="bind-mounts" name="bindMounts" type="text" placeholder="/data:/data,/scratch:/scratch" autocomplete="off" />
-                  </label>
-                </div>
-                <label class="field">
-                  <span>Extra Singularity arguments <em>optional</em></span>
-                  <input id="container-args" name="containerArgs" type="text" placeholder="--cleanenv" autocomplete="off" />
-                </label>
-                <p class="field-note">GPU jobs automatically include <code>--nv</code>.</p>
-              </div>
-
-              <div class="environment-panel hidden" data-environment-panel="conda">
-                <label class="field narrow-field">
-                  <span>Conda environment name</span>
-                  <input id="conda-env" name="condaEnv" type="text" placeholder="my-environment" autocomplete="off" />
-                  <small>Conda must already be available on the compute node.</small>
-                </label>
-              </div>
-
-              <div class="environment-panel hidden" data-environment-panel="custom">
-                <label class="field">
-                  <span>Setup commands</span>
-                  <textarea id="custom-setup" name="customSetup" rows="4" placeholder="# Example: module load ..."></textarea>
-                  <small>These lines run before your main command.</small>
-                </label>
-              </div>
-            </div>
           </div>
         </section>
       </form>
@@ -436,7 +386,7 @@
       <h2>Account vs. QoS</h2>
       <p><strong>Account</strong> decides which university allocation or credit pool is charged.</p>
       <p><strong>QoS</strong> controls scheduling priority, runtime limits, and preemption policy.</p>
-      <p>This builder selects the usual QoS for your account. It cannot verify which accounts your username may use.</p>
+      <p>This builder offers the QoS choices permitted by the selected account and partition. It cannot verify which accounts your username may use.</p>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

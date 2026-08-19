@@ -1,7 +1,7 @@
 PLAKSHA HPC CLUSTER: SLURM JOB-SCRIPT REFERENCE
 ================================================
 
-Snapshot date: 2026-08-17 (Asia/Kolkata)
+Snapshot date: 2026-08-19 (Asia/Kolkata)
 Cluster name: plakshahpc
 Slurm version: 25.11.4
 
@@ -50,7 +50,7 @@ Partition: rtx (DEFAULT)
   Nodes:                 cn02, cn03
   Maximum wall time:     7 days (7-00:00:00), further limited by QoS
   Default wall time:     1 hour (01:00:00)
-  Allowed QoS:           paid, faculty, rfphd, course, general
+  Allowed QoS:           paid, faculty, rfphd, course, general, scavenger
   Sharing:               consumable CPU/memory/GPU resources; no oversubscribe
   Default CPUs per GPU:  12 if CPUs are not explicitly requested
 
@@ -132,33 +132,29 @@ limit is the more restrictive applicable limit. "GPU/user" is the maximum
 number of allocated generic GPUs across that user's running jobs in the QoS.
 "Running jobs/user" and "submitted jobs/user" are likewise per-user limits.
 
-QoS       Priority  Max time     GPU/user  Running jobs/user  Submitted/user
---------- --------  -----------  --------  -----------------  --------------
-paid      1000      7 days       8         20                 200
-faculty    600      3 days       8         20                 200
-rfphd      400      5 days       4         10                 100
-course     200      4 hours      1          2                  10
-general    100      2 hours      1          2                  10
-scavenger    0      4 hours      none set   8                  50
+QoS        Priority  Max time  GPU/user  Running/user  Submitted/user  Flags
+---------  --------  --------  --------  ------------  --------------  ---------------------
+paid           1000  7 days    8         20            200             DenyOnLimit
+faculty         600  5 days    8         20            200             DenyOnLimit
+rfphd           400  5 days    4         10            100             DenyOnLimit
+course          200  12 hours  1          2             10             DenyOnLimit
+general         100  12 hours  1          2             10             DenyOnLimit
+scavenger         0  4 hours   none set   8             50             DenyOnLimit,NoReserve
 
 Important eligibility and behavior:
 
   * QoS access comes from the user's/account's Slurm association. The fact that
     a QoS exists does not mean every user may select it.
   * h200 accepts only paid and faculty.
-  * rtx accepts paid, faculty, rfphd, course, and general.
-  * scavenger is configured and may be assigned to some accounts, but as of
-    this snapshot it is absent from both partitions' AllowQos lists. Therefore
-    it is not currently a usable job-script choice. Confirm with administrators
-    if scavenger access is intended.
-  * paid can preempt course, general, and scavenger jobs.
-  * faculty can preempt course, general, and scavenger jobs.
-  * rfphd can preempt scavenger jobs.
+  * rtx accepts paid, faculty, rfphd, course, general, and scavenger.
+  * paid, faculty, rfphd, course, and general can each preempt scavenger jobs.
+    They do not preempt one another. scavenger cannot preempt any QoS.
   * Preemption mode is REQUEUE, with a cluster-wide 10-minute preemption-exempt
     period. Applications should checkpoint where practical and scripts should
     tolerate restart. Cluster jobs are requeue-enabled by default.
-  * course and general use DenyOnLimit: requests exceeding their QoS limits are
-    rejected rather than merely waiting for resources.
+  * Every operational QoS uses DenyOnLimit: a job that would breach a QoS limit
+    is rejected rather than left pending. scavenger also uses NoReserve, so its
+    jobs cannot reserve resources through backfill scheduling.
   * Priority is multifactor. QoS priority and fair-share have substantial
     weights, so queue order is not determined only by submission time.
 
@@ -166,26 +162,68 @@ The "normal" QoS also exists internally, but it is not allowed by either user
 partition and should not be requested for ordinary work.
 
 ACCOUNTS
--------------------
+---------------
 
-Slurm accounts are used to identify which allocation or credit pool a job should be charged to. They are separate from QoS, which determines scheduling priority, wall-time limits, preemption, and other job policies.
+Slurm accounts identify the allocation or credit pool charged for a job. They
+are separate from QoS, which controls priority, wall time, preemption, and job
+limits.
 
-The cluster uses the following top-level Slurm accounts:
+The cluster uses this account-association model:
 
-root
-├── courses
-├── faculty
-├── rfphd
-├── general
-└── paid
+    root
+    |-- courses
+    |   |-- course_user_1
+    |   `-- ...
+    |-- faculty
+    |   |-- faculty_user_1
+    |   `-- ...
+    |-- rfphd
+    |   |-- rfphd_user_1
+    |   `-- ...
+    |-- general
+    |   `-- general users
+    `-- paid
+        `-- direct users, when assigned
 
-| Account   | Purpose                                      | Typical QoS            |
-| --------- | -------------------------------------------- | ---------------------- |
-| `courses` | Course-specific student allocation           | `course`               |
-| `faculty` | Free monthly faculty research allocation     | `faculty`              |
-| `rfphd`   | Free RF/PhD research allocation              | `rfphd`                |
-| `general` | General allocation available to all users    | `general`, `scavenger` |
-| `paid-*`  | Purchased or contributed-resource allocation | `paid`                 |
+Users are associated directly with the applicable allocation account. In
+particular, each faculty member is a user under faculty; there is no separate
+per-faculty-member sub-account. Paid jobs use the paid account itself. Do not
+use hypothetical paid-* account names in job scripts.
+
+QoS permissions are inherited from the parent association and augmented by the
+child account's own tier. The common parent grants general and scavenger; each
+allocation child adds its tier-specific QoS. The effective choices are:
+
+Account    Effective permitted QoS              Default QoS
+---------  -----------------------------------  -----------
+general    general, scavenger                   general
+courses    general, scavenger, course           course
+faculty    general, scavenger, faculty          faculty
+rfphd      general, scavenger, rfphd            rfphd
+paid       general, scavenger, paid             paid
+
+For example, a user associated with courses can submit against that account
+with course (the default), general, or scavenger:
+
+    sbatch --account=courses --qos=course job.sh
+    sbatch --account=courses --qos=general job.sh
+    sbatch --account=courses --qos=scavenger job.sh
+
+Likewise, a faculty user selects the faculty allocation account and may choose
+faculty, general, or scavenger according to the job's needs:
+
+    sbatch --account=faculty --qos=faculty job.sh
+
+The selected account determines which allocation is charged. The selected QoS
+determines scheduling policy and must be in that association's effective QoS
+set. Omitting --qos uses the account's DefaultQOS.
+
+A user's live association output remains authoritative:
+
+    sacctmgr show user "$USER" withassoc format=User,Account,QOS,DefaultQOS
+
+Account permission does not override a partition's AllowQos list. scavenger is
+allowed on rtx, but h200 accepts only faculty and paid QoS.
 
 SBATCH TEMPLATES
 ----------------

@@ -431,16 +431,14 @@ code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-.policy-fieldset,
-.environment-fieldset {
+.policy-fieldset {
   min-width: 0;
   margin: 27px 0 0;
   padding: 0;
   border: 0;
 }
 
-.policy-fieldset legend,
-.environment-fieldset legend {
+.policy-fieldset legend {
   margin-bottom: 9px;
   font-size: 13px;
   font-weight: 700;
@@ -448,7 +446,7 @@ code {
 
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px;
 }
 
@@ -457,8 +455,7 @@ code {
   cursor: pointer;
 }
 
-.segmented-control input,
-.environment-tabs input {
+.segmented-control input {
   position: absolute;
   opacity: 0;
 }
@@ -804,56 +801,9 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-top: 20px;
 }
 
-.command-field input,
-#container-image,
-#bind-mounts,
-#container-args {
+.command-field input {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
-}
-
-.environment-tabs {
-  display: flex;
-  gap: 7px;
-  padding: 5px;
-  background: #eeece6;
-  border-radius: 11px;
-}
-
-.environment-tabs label {
-  position: relative;
-  flex: 1;
-  cursor: pointer;
-}
-
-.environment-tabs span {
-  min-height: 38px;
-  padding: 8px 10px;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.environment-tabs input:checked + span {
-  color: var(--green-deep);
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(25, 39, 35, 0.08);
-}
-
-.environment-panel {
-  margin-top: 22px;
-  padding: 20px;
-  background: rgba(228, 238, 233, 0.45);
-  border: 1px solid #d6e2dc;
-  border-radius: 12px;
-}
-
-.narrow-field {
-  max-width: 480px;
 }
 
 .hidden {
@@ -1295,11 +1245,6 @@ dialog p:not(.eyebrow) {
 
   .choice-card {
     min-height: 170px;
-  }
-
-  .environment-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .ai-help-card {

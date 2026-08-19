@@ -14,12 +14,9 @@ website:
         text: Projects 
       - href: members.qmd
         text: Members
-      - href: slurm-builder/index.html 
-        text: Slurm Builder
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
-
 
