@@ -132,7 +132,7 @@
             <div class="section-heading">
               <div>
                 <h2 id="allocation-heading">Which allocation should pay for it?</h2>
-                <p>Choose an account assigned to your university username.</p>
+                <p>Choose the account this job should charge. Every user has general; eligible users also have specialized accounts.</p>
               </div>
               <button class="help-button" type="button" data-dialog="account-help">
                 Account or QoS?
@@ -147,41 +147,15 @@
                   <option value="courses">Course</option>
                   <option value="faculty">Faculty</option>
                   <option value="rfphd">RF / PhD</option>
-                  <option value="paid">Paid allocation</option>
+                  <option value="paid">Paid allocation (if assigned)</option>
                 </select>
                 <small id="account-help-text">Uses the general allocation available to all users.</small>
               </label>
             </div>
 
-            <fieldset class="policy-fieldset">
-              <legend>Scheduling policy</legend>
-              <div class="segmented-control">
-                <label>
-                  <input type="radio" name="policy" value="standard" checked />
-                  <span>
-                    <strong>Standard</strong>
-                    <small id="standard-qos-label">general QoS · up to 12 hours</small>
-                  </span>
-                </label>
-                <label id="general-option" class="hidden">
-                  <input type="radio" name="policy" value="general" />
-                  <span>
-                    <strong>General</strong>
-                    <small>General-purpose QoS · up to 12 hours</small>
-                  </span>
-                </label>
-                <label id="scavenger-option">
-                  <input type="radio" name="policy" value="scavenger" />
-                  <span>
-                    <strong>Scavenger</strong>
-                    <small>Preemptible · no reservation · up to 4 hours</small>
-                  </span>
-                </label>
-              </div>
-              <p class="field-note" id="policy-note">
-                The general account can use General or Scavenger QoS on RTX. QoS limits are enforced at submission.
-              </p>
-            </fieldset>
+            <p class="field-note">
+              Each account uses its matching QoS. QoS limits are enforced at submission.
+            </p>
           </div>
         </section>
 
@@ -386,7 +360,9 @@
       <h2>Account vs. QoS</h2>
       <p><strong>Account</strong> decides which university allocation or credit pool is charged.</p>
       <p><strong>QoS</strong> controls scheduling priority, runtime limits, and preemption policy.</p>
-      <p>This builder offers the QoS choices permitted by the selected account and partition. It cannot verify which accounts your username may use.</p>
+      <p>Every user has a general association. Eligible users also have separate course, faculty, RF/PhD, or paid associations. Each account uses only its matching QoS.</p>
+      <p>Paid, Faculty, RF/PhD, and Course jobs can preempt General jobs after the cluster-wide 10-minute exemption. They do not preempt one another. Preempted jobs are requeued, so checkpoint when practical.</p>
+      <p>The account migration was still in progress on the guide's snapshot date. This builder cannot verify your live access; check it with <code>sacctmgr show user "$USER" withassoc</code>.</p>
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

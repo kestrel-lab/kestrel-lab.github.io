@@ -27,7 +27,6 @@
     return builder.normalizeConfig({
       workload: selected("workload"),
       account: form.elements.account.value,
-      policy: selected("policy"),
       gpus: form.elements.gpus.value,
       cpus: form.elements.cpus.value,
       memoryGb: form.elements.memory.value,
@@ -49,7 +48,6 @@
     const c = builder.normalizeConfig(config);
     setRadio("workload", c.workload);
     form.elements.account.value = c.account;
-    setRadio("policy", c.policy);
     form.elements.gpus.value = c.gpus || 1;
     form.elements.cpus.value = c.cpus;
     form.elements.memory.value = c.memoryGb;
@@ -69,33 +67,13 @@
     const c = readConfig();
     const workload = builder.WORKLOADS[c.workload];
     const account = builder.ACCOUNTS[c.account];
-    const standardQos = builder.QOS[account.qos];
     const isGpu = Boolean(workload.gres);
-    const isH200 = c.workload === "h200";
 
     document.querySelector("#gpu-count-field").classList.toggle("hidden", !isGpu);
     form.elements.gpus.max = workload.maxGpus || 1;
     document.querySelector("#gpu-limit").textContent = `Maximum ${workload.maxGpus} on this node.`;
 
     document.querySelector("#account-help-text").textContent = account.description;
-    document.querySelector("#standard-qos-label").textContent = `${account.qos} QoS · up to ${formatLimit(standardQos.maxMinutes)}`;
-
-    const generalOption = document.querySelector("#general-option");
-    const generalInput = form.querySelector('input[name="policy"][value="general"]');
-    const scavengerInput = form.querySelector('input[name="policy"][value="scavenger"]');
-    generalOption.classList.toggle("hidden", c.account === "general");
-    generalInput.disabled = isH200 || c.account === "general";
-    scavengerInput.disabled = isH200;
-    if ((generalInput.disabled && generalInput.checked) || (isH200 && scavengerInput.checked)) {
-      setRadio("policy", "standard");
-    }
-    if (isH200) {
-      document.querySelector("#policy-note").textContent = "H200 accepts only the faculty or paid account's matching QoS. QoS limits are enforced at submission.";
-    } else if (c.account === "general") {
-      document.querySelector("#policy-note").textContent = "The general account can use General or Scavenger QoS on RTX. QoS limits are enforced at submission.";
-    } else {
-      document.querySelector("#policy-note").textContent = `The ${account.account} account can use ${account.qos}, general, or scavenger QoS on RTX. QoS limits are enforced at submission.`;
-    }
 
     form.elements.memory.max = workload.maxMemoryGb;
     document.querySelector("#memory-limit").textContent = `Maximum ${workload.maxMemoryGb} GB on ${workload.partition.toUpperCase()} nodes.`;

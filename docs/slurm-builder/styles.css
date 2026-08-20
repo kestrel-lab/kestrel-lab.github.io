@@ -431,67 +431,6 @@ code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-.policy-fieldset {
-  min-width: 0;
-  margin: 27px 0 0;
-  padding: 0;
-  border: 0;
-}
-
-.policy-fieldset legend {
-  margin-bottom: 9px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.segmented-control {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 10px;
-}
-
-.segmented-control label {
-  position: relative;
-  cursor: pointer;
-}
-
-.segmented-control input {
-  position: absolute;
-  opacity: 0;
-}
-
-.segmented-control label > span {
-  min-height: 70px;
-  padding: 13px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-.segmented-control label > input:checked + span {
-  color: var(--green-deep);
-  background: var(--green-soft);
-  border-color: var(--green);
-}
-
-.segmented-control label > input:disabled + span {
-  color: #959c99;
-  background: #f0efeb;
-  cursor: not-allowed;
-}
-
-.segmented-control strong {
-  font-size: 13px;
-}
-
-.segmented-control small {
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .field-note {
   margin: 10px 0 0;
   color: var(--muted);
@@ -1238,8 +1177,7 @@ dialog p:not(.eyebrow) {
 
   .workload-grid,
   .two-columns,
-  .resource-grid,
-  .segmented-control {
+  .resource-grid {
     grid-template-columns: 1fr;
   }
 

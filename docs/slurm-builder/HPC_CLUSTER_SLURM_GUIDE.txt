@@ -23,7 +23,17 @@ values with:
 QUICK SELECTION GUIDE
 ---------------------
 
-1. Choose a partition (hardware):
+1. Choose an account (allocation):
+
+   Under the target account model, all users are associated with the general
+   account. Users who belong to a faculty, course, RF/PhD, or paid allocation
+   also have the corresponding additional account association. Specify the
+   allocation that the job should charge, especially if you have more than one
+   association:
+
+       #SBATCH --account=<account-name>
+
+2. Choose a partition (hardware):
 
    rtx   Default partition. Use for GPU jobs needing an RTX GPU slice and for
          CPU-only jobs unless an administrator recommends otherwise.
@@ -31,7 +41,7 @@ QUICK SELECTION GUIDE
    h200  Use only when the job needs an NVIDIA H200 NVL GPU or the resources
          of the H200 node. Access is restricted to paid and faculty QoS.
 
-2. Choose a QoS (policy/entitlement):
+3. Choose a QoS (policy/entitlement):
 
    Use the DefaultQOS assigned to your Slurm account unless you have explicitly
    been granted another QoS. Check your own assignment with the sacctmgr command
@@ -39,7 +49,7 @@ QUICK SELECTION GUIDE
 
        #SBATCH --qos=<qos-name>
 
-3. Request only what the program needs. A larger CPU, GPU, memory, or time
+4. Request only what the program needs. A larger CPU, GPU, memory, or time
    request may wait longer in the queue.
 
 
@@ -50,7 +60,7 @@ Partition: rtx (DEFAULT)
   Nodes:                 cn02, cn03
   Maximum wall time:     7 days (7-00:00:00), further limited by QoS
   Default wall time:     1 hour (01:00:00)
-  Allowed QoS:           paid, faculty, rfphd, course, general, scavenger
+  Allowed QoS:           paid, faculty, rfphd, course, general
   Sharing:               consumable CPU/memory/GPU resources; no oversubscribe
   Default CPUs per GPU:  12 if CPUs are not explicitly requested
 
@@ -139,38 +149,40 @@ faculty         600  5 days    8         20            200             DenyOnLim
 rfphd           400  5 days    4         10            100             DenyOnLimit
 course          200  12 hours  1          2             10             DenyOnLimit
 general         100  12 hours  1          2             10             DenyOnLimit
-scavenger         0  4 hours   none set   8             50             DenyOnLimit,NoReserve
 
 Important eligibility and behavior:
 
   * QoS access comes from the user's/account's Slurm association. The fact that
     a QoS exists does not mean every user may select it.
   * h200 accepts only paid and faculty.
-  * rtx accepts paid, faculty, rfphd, course, general, and scavenger.
-  * paid, faculty, rfphd, course, and general can each preempt scavenger jobs.
-    They do not preempt one another. scavenger cannot preempt any QoS.
+  * rtx accepts paid, faculty, rfphd, course, and general.
+  * paid, faculty, rfphd, and course jobs can preempt general jobs. They do not
+    preempt one another, and general jobs cannot preempt another QoS.
   * Preemption mode is REQUEUE, with a cluster-wide 10-minute preemption-exempt
     period. Applications should checkpoint where practical and scripts should
     tolerate restart. Cluster jobs are requeue-enabled by default.
   * Every operational QoS uses DenyOnLimit: a job that would breach a QoS limit
-    is rejected rather than left pending. scavenger also uses NoReserve, so its
-    jobs cannot reserve resources through backfill scheduling.
+    is rejected rather than left pending.
   * Priority is multifactor. QoS priority and fair-share have substantial
     weights, so queue order is not determined only by submission time.
 
 The "normal" QoS also exists internally, but it is not allowed by either user
 partition and should not be requested for ordinary work.
 
+
 ACCOUNTS
 ---------------
-
 Slurm accounts identify the allocation or credit pool charged for a job. They
 are separate from QoS, which controls priority, wall time, preemption, and job
 limits.
 
-The cluster uses this account-association model:
+The account associations are being migrated to this model. Account membership
+overlaps: every user is under general, and eligible users also appear directly
+under the applicable specialized account:
 
     root
+    |-- general
+    |   `-- all users
     |-- courses
     |   |-- course_user_1
     |   `-- ...
@@ -180,50 +192,56 @@ The cluster uses this account-association model:
     |-- rfphd
     |   |-- rfphd_user_1
     |   `-- ...
-    |-- general
-    |   `-- general users
     `-- paid
-        `-- direct users, when assigned
+        `-- currently empty
 
-Users are associated directly with the applicable allocation account. In
-particular, each faculty member is a user under faculty; there is no separate
-per-faculty-member sub-account. Paid jobs use the paid account itself. Do not
-use hypothetical paid-* account names in job scripts.
+Users are associated directly with allocation accounts; specialized users can
+therefore have multiple associations. For example, a faculty member appears
+directly under both general and faculty. There is no separate per-faculty-member
+sub-account. The paid account currently has no users or sub-accounts. Do not use
+hypothetical paid-* account names in job scripts.
 
-QoS permissions are inherited from the parent association and augmented by the
-child account's own tier. The common parent grants general and scavenger; each
-allocation child adds its tier-specific QoS. The effective choices are:
+QoS permissions are specific to each allocation account; specialized accounts
+do not inherit another account's QoS. After the account migration, the effective
+choices are intended to be:
 
-Account    Effective permitted QoS              Default QoS
----------  -----------------------------------  -----------
-general    general, scavenger                   general
-courses    general, scavenger, course           course
-faculty    general, scavenger, faculty          faculty
-rfphd      general, scavenger, rfphd            rfphd
-paid       general, scavenger, paid             paid
+Account    Permitted QoS  Default QoS
+---------  -------------  -----------
+general    general        general
+courses    course         course
+faculty    faculty        faculty
+rfphd      rfphd          rfphd
+paid       paid           paid
 
-For example, a user associated with courses can submit against that account
-with course (the default), general, or scavenger:
+For example, a course user can explicitly charge a general-tier job to the
+general allocation or a course-tier job to the courses allocation:
 
+    sbatch --account=general --qos=general job.sh
     sbatch --account=courses --qos=course job.sh
-    sbatch --account=courses --qos=general job.sh
-    sbatch --account=courses --qos=scavenger job.sh
 
-Likewise, a faculty user selects the faculty allocation account and may choose
-faculty, general, or scavenger according to the job's needs:
+Likewise, a faculty user has both general and faculty associations. Select the
+account that should be charged and pair it with the corresponding tier:
 
+    sbatch --account=general --qos=general job.sh
     sbatch --account=faculty --qos=faculty job.sh
 
 The selected account determines which allocation is charged. The selected QoS
 determines scheduling policy and must be in that association's effective QoS
-set. Omitting --qos uses the account's DefaultQOS.
+set. Omitting --qos uses the selected account's DefaultQOS. Omitting --account
+uses the user's configured default account, which may not be the allocation the
+user intended to charge; users with multiple associations should normally
+specify --account explicitly.
 
-A user's live association output remains authoritative:
+This account migration was still in progress on the snapshot date. Until it is
+complete, a user's live association output is authoritative:
 
     sacctmgr show user "$USER" withassoc format=User,Account,QOS,DefaultQOS
 
-Account permission does not override a partition's AllowQos list. scavenger is
-allowed on rtx, but h200 accepts only faculty and paid QoS.
+Account permission does not override a partition's AllowQos list. In
+particular, h200 accepts only paid and faculty QoS; general, course, and rfphd
+jobs must use rtx.
+
+
 
 SBATCH TEMPLATES
 ----------------
@@ -233,7 +251,8 @@ RTX: one 24 GB GPU instance
     #!/bin/bash
     #SBATCH --job-name=my_job
     #SBATCH --partition=rtx
-    #SBATCH --qos=general             # change/remove according to your account
+    #SBATCH --account=general
+    #SBATCH --qos=general
     #SBATCH --gres=gpu:1g.24gb:1
     #SBATCH --nodes=1
     #SBATCH --ntasks=1
@@ -251,7 +270,8 @@ RTX: one 48 GB GPU instance
     #!/bin/bash
     #SBATCH --job-name=my_job
     #SBATCH --partition=rtx
-    #SBATCH --qos=faculty             # change/remove according to your account
+    #SBATCH --account=faculty
+    #SBATCH --qos=faculty
     #SBATCH --gres=gpu:2g.48gb:1
     #SBATCH --nodes=1
     #SBATCH --ntasks=1
@@ -266,9 +286,11 @@ RTX: one 48 GB GPU instance
 H200: one GPU
 
     #!/bin/bash
+    # This example uses faculty; paid users replace both values with paid.
     #SBATCH --job-name=my_job
     #SBATCH --partition=h200
-    #SBATCH --qos=faculty             # or paid; must be assigned to you
+    #SBATCH --account=faculty
+    #SBATCH --qos=faculty
     #SBATCH --gres=gpu:nvidia_h200_nvl:1
     #SBATCH --nodes=1
     #SBATCH --ntasks=1
@@ -285,7 +307,8 @@ CPU-only, single process
     #!/bin/bash
     #SBATCH --job-name=cpu_job
     #SBATCH --partition=rtx
-    #SBATCH --qos=general             # change/remove according to your account
+    #SBATCH --account=general
+    #SBATCH --qos=general
     #SBATCH --nodes=1
     #SBATCH --ntasks=1
     #SBATCH --cpus-per-task=8
@@ -313,7 +336,7 @@ Show full partition or node configuration:
     scontrol show partition
     scontrol show node
 
-Show your account, permitted QoS, and default QoS:
+Show your account associations, permitted QoS, and default QoS for each:
 
     sacctmgr show user "$USER" withassoc format=User,Account,Partition,QOS,DefaultQOS
 
@@ -338,7 +361,8 @@ INFORMATION TO GIVE CHATGPT FOR A JOB-SCRIPT RECOMMENDATION
 Supply this file plus the following facts. Do not include secrets, passwords,
 API keys, private datasets, or credentials.
 
-  * Your permitted QoS and DefaultQOS from the sacctmgr command above
+  * Your account associations, permitted QoS, and DefaultQOS values from the
+    sacctmgr command above
   * The command that runs the program
   * Whether it is CPU-only or GPU-enabled
   * Required GPU type and GPU memory, if known
@@ -365,4 +389,5 @@ This snapshot was generated from live output of sinfo, scontrol show partition,
 scontrol show node, scontrol show config, and sacctmgr show qos/assoc. Transient
 node states and free memory were deliberately omitted because they quickly
 become stale. Individual usernames and membership lists are also omitted; users
-should query their own association instead.
+should query their own association instead. The account model and preemption
+policy describe the intended post-migration configuration.

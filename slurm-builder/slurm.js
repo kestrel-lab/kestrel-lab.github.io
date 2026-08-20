@@ -73,7 +73,7 @@
       label: "Paid",
       account: "paid",
       qos: "paid",
-      description: "Uses purchased credits from the paid allocation account.",
+      description: "Uses purchased credits when the paid allocation is assigned to you.",
     },
   });
 
@@ -83,13 +83,11 @@
     rfphd: { label: "RF / PhD", maxMinutes: 5 * 24 * 60 },
     course: { label: "Course", maxMinutes: 12 * 60 },
     general: { label: "General", maxMinutes: 12 * 60 },
-    scavenger: { label: "Scavenger", maxMinutes: 4 * 60 },
   });
 
   const DEFAULT_CONFIG = Object.freeze({
     workload: "cpu",
     account: "general",
-    policy: "standard",
     gpus: 0,
     cpus: 4,
     memoryGb: 32,
@@ -110,13 +108,9 @@
     const raw = Object.assign({}, DEFAULT_CONFIG, input || {});
     const workload = WORKLOADS[raw.workload] ? raw.workload : DEFAULT_CONFIG.workload;
     const account = ACCOUNTS[raw.account] ? raw.account : DEFAULT_CONFIG.account;
-    let policy = ["standard", "general", "scavenger"].includes(raw.policy) ? raw.policy : "standard";
-    if (workload === "h200" || (account === "general" && policy === "general")) policy = "standard";
-
     return {
       workload,
       account,
-      policy,
       gpus: integer(raw.gpus, WORKLOADS[workload].preset.gpus),
       cpus: integer(raw.cpus, WORKLOADS[workload].preset.cpus),
       memoryGb: integer(raw.memoryGb, WORKLOADS[workload].preset.memoryGb),
@@ -131,8 +125,6 @@
 
   function qosFor(config) {
     const normalized = normalizeConfig(config);
-    if (normalized.policy === "scavenger") return "scavenger";
-    if (normalized.policy === "general") return "general";
     return ACCOUNTS[normalized.account].qos;
   }
 
@@ -225,8 +217,8 @@
       );
     }
 
-    if (qosName === "scavenger") {
-      warnings.push("Scavenger jobs have the lowest priority, cannot reserve resources, and may be preempted and requeued. Save checkpoints when practical.");
+    if (qosName === "general" && c.workload !== "h200") {
+      warnings.push("General jobs may be preempted and requeued by paid, faculty, RF/PhD, or course jobs after the 10-minute preemption-exempt period. Save checkpoints when practical.");
     }
 
     if (workload.gres && c.cpus > 32 * c.gpus) {
@@ -305,6 +297,9 @@ ${workload.label}
 
 Slurm account I expect to use:
 ${selectedAccount}
+
+My live account associations, permitted QoS, and DefaultQOS values:
+[PASTE THE OUTPUT OF: sacctmgr show user "$USER" withassoc format=User,Account,Partition,QOS,DefaultQOS]
 
 Framework and code:
 [ATTACH THE CODE, OR DESCRIBE THE FRAMEWORK AND WHAT THE PROGRAM DOES]
