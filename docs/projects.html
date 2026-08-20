@@ -147,11 +147,13 @@ ul.task-list li input[type="checkbox"] {
 <section id="visual-estimation-in-vlms" class="level4">
 <h4 class="anchored" data-anchor-id="visual-estimation-in-vlms">Visual Estimation in VLMs</h4>
 <p>We implicitly make many rapid estimations of properties like weights and volumes of objects as we navigate the world. Deploying vision-language models (VLMs) in robotics applications requires them to have some of these same abilities. VLMs trained on text-image pairs may fall short on such important tasks because they lack the grounding that comes from real interaction via embodied systems. We create a dataset of precise, hand-measured ground truth values to benchmark a wide variety of models (including robotics foundation models). Our emphasis is to move beyond well-studied spatial estimation abilities. We are also studying the interventions we can do, via tool augmentation or fine-tuning, to improve the current models on these tasks.</p>
-<p><mark>Paper and dataset coming soon</mark></p>
+<p><a href="./data/visual_estimation.pdf">Paper</a></p>
+<p><mark>Dataset: coming soon</mark></p>
 </section>
-<section id="benchmarking-compositional-reasoning-in-llms" class="level4">
-<h4 class="anchored" data-anchor-id="benchmarking-compositional-reasoning-in-llms">Benchmarking Compositional Reasoning in LLMs</h4>
-<p>Can LLMs take basic tools and fashion more complex tools out of them (as per given rules) to solve hard problems efficiently? Such scenarios, besides occurring in human societies, also occur in games such as Minecraft and Factorio. We are interested in designing benchmarks that can test for such a skill. Lisp programming is promising since we have primitive functions and we compose them via recursion to build higher-order functions. However, to avoid degeneration to program synthesis and recall from training data memory, we have to adequately obfuscate the syntax.</p>
+<section id="low-contention-sm-partitioning-for-concurrent-prefill-and-decode-in-disaggregated-serving" class="level4">
+<h4 class="anchored" data-anchor-id="low-contention-sm-partitioning-for-concurrent-prefill-and-decode-in-disaggregated-serving">Low-Contention SM-partitioning for Concurrent Prefill and Decode in Disaggregated Serving</h4>
+<p>with <a href="https://www.microsoft.com/en-us/research/people/nkwatra/">Dr.&nbsp;Nipun Kwatra</a>, Principal Researcher, Microsoft Research India</p>
+<p>Disaggregated serving has become an important LLM serving paradigm due to its ability to meet stringent decode latency targets in large-scale deployments. Although disaggregated serving removes prefill-decode interference by locating them on separate GPUs, the compute utilisation of decode GPUs is poor. Our aim is to reclaim some of the idle compute units on decode GPUs. To this end, we investigate CUDA mechanisms that enable us to partition the compute units and schedule limited prefill workload on a fraction of SMs in decode GPUs with minimum impact on decode latency.</p>
 </section>
 <section id="memory-bandwidth-regulation-for-llm-inference-of-shared-memory-systems" class="level4">
 <h4 class="anchored" data-anchor-id="memory-bandwidth-regulation-for-llm-inference-of-shared-memory-systems">Memory Bandwidth Regulation for LLM Inference of Shared Memory Systems</h4>
